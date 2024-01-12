@@ -1,3 +1,12 @@
+import java.util.*
+import kotlin.math.min
+class Master{
+    val list1 = listOf(1,0, -1,0, 0,1, 0,-1, 1,1, 1,-1, -1,-1, -1,1)
+}
+class Knight{
+    val list1 = listOf(1,2, 2,1, 2,-1, 1,-2, -1,-2, -2,-1, -2,1, -1,2)
+}
+
 val board = mutableMapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
     // 'mutable' so every spot can be updated
@@ -6,7 +15,7 @@ val board = mutableMapOf(
     "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " □", "f6" to " ■", "g6" to " □", "h6" to " ■",
     "a5" to " ■", "b5" to " □", "c5" to " ■", "d5" to " □", "e5" to " ■", "f5" to " □", "g5" to " ■", "h5" to " □",
     "a4" to " □", "b4" to " ■", "c4" to " □", "d4" to " ■", "e4" to " □", "f4" to " ■", "g4" to " □", "h4" to " ■",
-    "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to "R1", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
+    "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
     "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to "P1", "f2" to "P1", "g2" to "P1", "h2" to "P1",
     "a1" to "R1", "b1" to "K1", "c1" to "B1", "d1" to "Q1", "e1" to "M1", "f1" to "B1", "g1" to "K1", "h1" to "R1"
 )
@@ -27,7 +36,7 @@ val valid = mutableMapOf(
 
 
 var currentPlayer = true; var user = "0"; var opponent = "0"; var selTemp = "null"
-var ogX = 0; var ogY = 0; var recursion = 1
+var ogX = 0; var ogY = 0; var recursion = 1; var pawnMove = false; var knightMove = false; var masterMove = false
 fun printBoard() {
     for (j in 8 downTo 1) {
         val find2 = j.toString()
@@ -91,19 +100,24 @@ fun xCoordNum(x: Int): String {
 // ------------------------------------------------------------------------
 fun moving(x: Int, y: Int) {
     if (board[selTemp].toString().contains("P")) {
+        pawnMove = true
         pawn(x, y)
         intermission(x, y)
     } else if (board[selTemp].toString().contains("R")) {
         rook(x, y)
         intermission(x, y)
     } else if (board[selTemp].toString().contains("K")) {
-
+        knightMove = true
+        knight(x, y)
+        intermission(x, y)
     } else if (board[selTemp].toString().contains("B")) {
-
+        bishop(x, y)
+        intermission(x, y)
     } else if (board[selTemp].toString().contains("Q")) {
 
     } else if (board[selTemp].toString().contains("M")) {
-
+        masterMove = true
+        knight(x, y)
     }
 
 }
@@ -133,9 +147,14 @@ fun endGame(x: Int, y: Int) {
             for (i in 97..104) {
                 val find1 = i.toChar().toString()
                 val find3 = find1 + find2
-                valid[find3] = fs
+                valid[find3] = false
             }
         }
+        //promotion, potential bug mixing up a move with another pawn. Don't think so but noted.
+        if (pawnMove && (y == 1 || y == 8)){
+            pawnPromo(x,y)
+        }
+        pawnMove = false; knightMove = false; masterMove = false
         start(currentPlayer)
     } else {
         println("Invalid spot to move. Starting turn again.")
@@ -155,6 +174,20 @@ fun replace(x: Int, y: Int): String {
             " □"
         } else {
             " ■"
+        }
+    }
+}
+
+fun pawnPromo(x: Int, y: Int){
+    println("\nPawn promotion achieved!\nType the following for your moved to promote to:" +
+            "\n'Q' for a queen. 'K' for a knight. 'B' for a bishop. 'R' for a rook.")
+    when(readln().uppercase(Locale.getDefault())){
+        "Q" -> board[xCoordNum(x) + y] = "Q$user"
+        "K" -> board[xCoordNum(x) + y] = "K$user"
+        "B" -> board[xCoordNum(x) + y] = "B$user"
+        "R" -> board[xCoordNum(x) + y] = "R$user"
+        else -> {
+            println("Invalid promotion. Try again."); pawnPromo(x, y)
         }
     }
 }
@@ -210,20 +243,22 @@ fun pawn(x: Int, y: Int) {
 // as -1 pushes path down and/or left direction
 // addition strictly to these
 // and addition the could be positive or negative to continuosly forge a path one tile at a time.
-fun universalMove(x: Int, y: Int, m1: Int, m2: Int, remaining: Int){
+fun universalMove(x: Int, y: Int, mY: Int, mX: Int, remaining: Int){
     for (i in 1..remaining){
-        if (board[xCoordNum(x + (i * m2)) + (y + (i * m1))].toString().contains(user)){
+        if (board[xCoordNum(x + (i * mX)) + (y + (i * mY))].toString().contains(user)){
             break
         }
-        else if (board[xCoordNum(x + (i * m2)) + (y + (i * m1))].toString().contains(opponent)){
-            valid[xCoordNum(x + (i * m2)) + (y + (i * m1))] = true
+        else if (board[xCoordNum(x + (i * mX)) + (y + (i * mY))].toString().contains(opponent)){
+            valid[xCoordNum(x + (i * mX)) + (y + (i * mY))] = true
             break
         }
         else {
-            valid[xCoordNum(x + (i * m2)) + (y + (i * m1))] = true
+            valid[xCoordNum(x + (i * mX)) + (y + (i * mY))] = true
         }
     }
 }
+// could I do a class for the bishop/rook variables for functions?
+// MERGE TO TWO UNIVERSAL MOVES with two each. One for rook and bishop. Another for knight and master.
 
 fun rook(x: Int, y:Int){
     when (recursion){
@@ -239,9 +274,78 @@ fun rook(x: Int, y:Int){
     recursion = 1
 }
 
+fun bishop(x: Int, y:Int){
+    when (recursion){
+        1 -> universalMove(x, y, 1, 1, min(8 - x, 8 - y))     //top right
+        2 -> universalMove(x, y, -1, 1, min(8 - x, y))           //bottom right
+        3 -> universalMove(x, y, -1, -1, min(x,y))                  //bottom left
+        4 -> universalMove(x, y, 1, -1, min(x,8 - y))            //top left
+    }
+    if (recursion != 4){
+        recursion++
+        bishop(x,y)
+    }
+    recursion = 1
+}
+// both the king and knight use this system to move maybe it could be merged.
+// make a class, assign variables, continue through a universal move
+// create object to pass through function, put this in moving
+// idea did not work
+//can I do it in only 8 cases?
+fun knight(x: Int, y: Int){
+    var lL = listOf(1)
+    if(knightMove){
+        lL = Knight().list1
+    }
+    else{
+        lL = Master().list1
+    }
+    when (recursion){ //no need for error catch. maps just resort to a null
+        // might have to recreate a map of spots so nulls don't stack, maybe not if the nulls don't do anything
+        1 -> { valid[xCoordNum(x + lL[0]) + (y + lL[1])] = true
+            checkSpot(x + lL[0], y + lL[1])
+        }
+        2 -> { valid[xCoordNum(x + lL[2]) + (y + lL[3])] = true
+            checkSpot(x + lL[2], y + lL[3])
+        }
+        3 -> { valid[xCoordNum(x + lL[4]) + (y + lL[5])] = true
+            checkSpot(x + lL[4], y + lL[5])
+        }
+        4 -> { valid[xCoordNum(x + lL[6]) + (y + lL[7])] = true
+            checkSpot(x + lL[6], y + lL[7])
+        }
+        5 -> { valid[xCoordNum(x + lL[8]) + (y + lL[9])] = true
+            checkSpot(x + lL[8], y + lL[9])
+        }
+        6 -> { valid[xCoordNum(x + lL[10]) + (y + lL[11])] = true
+            checkSpot(x + lL[10], y + lL[11])
+        }
+        7 -> { valid[xCoordNum(x + lL[12]) + (y + lL[13])] = true
+            checkSpot(x + lL[12], y + lL[13])
+        }
+        8 -> { valid[xCoordNum(x + lL[14]) + (y + lL[15])] = true
+            checkSpot(x + lL[14], y + lL[15])
+        }
+    }
+    if (recursion != 8){
+        recursion++
+        knight(x,y)
+    }
+    recursion = 1
+}// knight looping for some reason, does not cause harm though...
+
+fun checkSpot(x: Int, y: Int){
+    if(board[xCoordNum(x)+y].toString().contains(user)){
+        valid[xCoordNum(x)+y] = false
+    }
+}
+
 //----------------------------------------------------------------------------------
 fun main() {
     start(currentPlayer)
 }
 // get some classes/ objects
 // when expression
+/*
+
+ */
