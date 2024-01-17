@@ -1,5 +1,7 @@
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.min
+
 class Master{
     val list1 = listOf(1,0, -1,0, 0,1, 0,-1, 1,1, 1,-1, -1,-1, -1,1)
 }
@@ -12,6 +14,7 @@ class Bishop(x: Int, y: Int){
 class Rook(x: Int, y: Int){
     val list1 = listOf(1,0, 0,1, -1,0, 0,-1, 8 - y, 8 - x, y, x)
 }
+// construct an array to mimic line
 
 val board = mutableMapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
@@ -20,8 +23,8 @@ val board = mutableMapOf(
     "a7" to "P2", "b7" to "P2", "c7" to "P2", "d7" to "P2", "e7" to "P2", "f7" to "P2", "g7" to "P2", "h7" to "P2",
     "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " □", "f6" to " ■", "g6" to " □", "h6" to " ■",
     "a5" to " ■", "b5" to " □", "c5" to " ■", "d5" to " □", "e5" to " ■", "f5" to " □", "g5" to " ■", "h5" to " □",
-    "a4" to " □", "b4" to " ■", "c4" to " □", "d4" to " ■", "e4" to " □", "f4" to "Q1", "g4" to " □", "h4" to " ■",
-    "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
+    "a4" to " □", "b4" to " ■", "c4" to "P2", "d4" to " ■", "e4" to " □", "f4" to "Q1", "g4" to " □", "h4" to " ■",
+    "a3" to "P2", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to "P2",
     "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to "P1", "f2" to "P1", "g2" to "P1", "h2" to "P1",
     "a1" to "R1", "b1" to "K1", "c1" to "B1", "d1" to "Q1", "e1" to "M1", "f1" to "B1", "g1" to "K1", "h1" to "R1"
 )
@@ -39,11 +42,15 @@ val valid = mutableMapOf(
     // formatting?! // size 65? from rook movement?
 )
 // watch for weird false and add additions of the valid spots
-
+// map re-use, make a long string of charcters assigned to key (coord), index at comma
 
 var currentPlayer = true; var user = "0"; var opponent = "0"; var selTemp = "null"
 var ogX = 0; var ogY = 0; var recursion = 1; var pawnMove = false; var knightMove = false; var masterMove = false
-var rookMove = false; var bishopMove = false
+var rookMove = false; //var bishopMove = false
+var mod1 = 0; var mod2 = 0; var turnCount = 1
+var prevMove = "null"; var compPass = false
+
+//------------------------------------- FUNCTIONS -----------------------------------------
 fun printBoard() {
     for (j in 8 downTo 1) {
         val find2 = j.toString()
@@ -76,6 +83,7 @@ fun start(player: Boolean) {
                 selTemp.substring(startIndex = 1, endIndex = 2).toInt()
             )
             // x,y coordinate
+            // a ->  translate, for ex. 1 ,y -> 2
         } else {
             start(currentPlayer)
         }
@@ -113,7 +121,7 @@ fun moving(x: Int, y: Int) {
         intermission(x, y)
     } else if (board[selTemp].toString().contains("R")) {
         rookMove = true
-        UM1(x, y)
+        UM1(x, y) // Universal Move 1
         possible()
         rookMove = false
         intermission(x, y)
@@ -178,14 +186,23 @@ fun endGame(x: Int, y: Int) {
             }
         }
         //promotion, potential bug mixing up a move with another pawn. Don't think so but noted.
-        if (pawnMove && (y == 1 || y == 8)){
-            pawnPromo(x,y)
+        if (pawnMove) {
+            if (abs(y - ogY) == 2){
+                prevMove = "$x$y$turnCount$user"
+            }
+            if (y == 1 || y == 8){
+                pawnPromo(x, y)
+            }
+            if (compPass && prevMove == "$x" + (y + (mod1 * -1)) + (turnCount-1) + "$opponent"){ //En passent
+                board[xCoordNum(x) + (y + (mod1 * -1))] = replace(x, y + (mod1 * -1)) // bugs may occur
+            }
         }
-        pawnMove = false; knightMove = false; masterMove = false
+        pawnMove = false; knightMove = false; masterMove = false; compPass = false
+        mod1 = 0; mod2 = 0; turnCount++
         start(currentPlayer)
     } else {
         println("Invalid spot to move. Starting turn again.")
-        start(currentPlayer)
+        intermission(ogX, ogY)
     }
 }
 
@@ -221,11 +238,8 @@ fun pawnPromo(x: Int, y: Int){
 
 // ---------------------------------------------------------------------------------
 
-var mod1 = 0; var mod2 = 0
-// coordinate translator to keys
-
 fun pawn(x: Int, y: Int) {
-    val pawnTemp = xCoordNum(x)
+    val pawnTemp = xCoordNum(x) // letter
     when (user) {
         "1" -> {
             mod1 = 1; mod2 = 2
@@ -241,25 +255,37 @@ fun pawn(x: Int, y: Int) {
             }
         }
     }
-    if (!board[pawnTemp + (y + mod1)].toString().contains("2") || !board[pawnTemp + (y + mod1)].toString()
+    // FIXED: three bugs.
+    // - Or -> and operators
+    // - true tile through a piece at two tile
+    // - player left player capture, only went right
+    if (!board[pawnTemp + (y + mod1)].toString().contains("2") && !board[pawnTemp + (y + mod1)].toString()
             .contains("1")
-    ) {
+        ) {
         valid[pawnTemp + (y + mod1)] = true
-    }
-    if (!board[pawnTemp + (y + mod2)].toString().contains("2") || !board[pawnTemp + (y + mod2)].toString()
-            .contains("1")
-    ) {
-        valid[pawnTemp + (y + mod2)] = true
+        if (!board[pawnTemp + (y + mod2)].toString().contains("2") && !board[pawnTemp + (y + mod2)].toString()
+                .contains("1")
+        ) {
+            valid[pawnTemp + (y + mod2)] = true
+        }
     }
     valid[pawnTemp + (y)] = false
-    if (x < 7) {
+    if (x < 8) {
         if (board[xCoordNum(x + 1) + (y + mod1)].toString().contains(opponent)) {
             valid[xCoordNum(x + 1) + (y + mod1)] = true
         }
     }
-    if (x > 0) {
+    if (x > 1) {
         if (board[xCoordNum(x - 1) + (y + mod1)].toString().contains(opponent)) {
-            valid[xCoordNum(x + 1) + (y + mod1)] = true
+            valid[xCoordNum(x - 1) + (y + mod1)] = true
+        }
+    }
+    if (prevMove.contains((turnCount - 1).toString()) && prevMove.contains(opponent)) {
+        if (x < 8 && prevMove.substring(0,1).toInt() == x + 1 ) {
+            valid[xCoordNum(x + 1) + (y + mod1)] = true; compPass = true
+        }
+        if (x > 1 && prevMove.substring(0,1).toInt() == x - 1) {
+            valid[xCoordNum(x - 1) + (y + mod1)] = true; compPass = true
         }
     }
 }
@@ -285,6 +311,7 @@ fun UM1(x: Int, y:Int){
     recursion = 1
 }
 fun universalMove(x: Int, y: Int, mY: Int, mX: Int, remaining: Int){
+    // modifier / multiplier
     for (i in 1..remaining){
         if (board[xCoordNum(x + (i * mX)) + (y + (i * mY))].toString().contains(user)){
             break
@@ -301,10 +328,10 @@ fun universalMove(x: Int, y: Int, mY: Int, mX: Int, remaining: Int){
 
 fun UM2(x: Int, y: Int){
     var lL = listOf(1)
-    if(knightMove){
+    if(knightMove){ // knight
         lL = Knight().list1
     }
-    else{
+    else{ // master (king)
         lL = Master().list1
     }
     when (recursion){ //no need for error catch. maps just resort to a null
