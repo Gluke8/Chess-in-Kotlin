@@ -14,7 +14,6 @@ Present:
 
 What's to come?
 - Rest of the original systems in Chess
-- Check
 - CheckMate
 - Stalemate and other endgames
 - Castling
