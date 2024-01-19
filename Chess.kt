@@ -24,12 +24,12 @@ var board = mutableMapOf(
     // 'mutable' so every spot can be updated
     "a8" to "R2", "b8" to "K2", "c8" to "B2", "d8" to "Q2", "e8" to "M2", "f8" to "B2", "g8" to "K2", "h8" to "R2",
     "a7" to "P2", "b7" to "P2", "c7" to "P2", "d7" to "P2", "e7" to "Q2", "f7" to "P2", "g7" to "P2", "h7" to "P2",
-    "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " □", "f6" to " ■", "g6" to " □", "h6" to " ■",
+    "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " ■", "f6" to " ■", "g6" to " □", "h6" to " ■",
     "a5" to " ■", "b5" to " □", "c5" to " ■", "d5" to " □", "e5" to " ■", "f5" to " □", "g5" to " ■", "h5" to " □",
     "a4" to " □", "b4" to " ■", "c4" to " □", "d4" to " ■", "e4" to " □", "f4" to " ■", "g4" to " □", "h4" to " ■",
     "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
-    "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to " □", "f2" to " ■", "g2" to "P1", "h2" to "P1",
-    "a1" to "R1", "b1" to "K1", "c1" to "B1", "d1" to "Q1", "e1" to "M1", "f1" to "B1", "g1" to "K1", "h1" to "R1"
+    "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to " □", "f2" to "P1", "g2" to "P1", "h2" to "P1",
+    "a1" to "R1", "b1" to "K1", "c1" to "B1", "d1" to "P1", "e1" to "M1", "f1" to "P1", "g1" to "P1", "h1" to "R1"
 )
 var mimic = mapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
@@ -68,6 +68,18 @@ val ogFalse = mapOf( //resets valid tile map, temp map
     "a2" to fs, "b2" to fs, "c2" to fs, "d2" to fs, "e2" to fs, "f2" to fs, "g2" to fs, "h2" to fs,
     "a1" to fs, "b1" to fs, "c1" to fs, "d1" to fs, "e1" to fs, "f1" to fs, "g1" to fs, "h1" to fs
 )
+
+var validTemp = mapOf( // temp map
+// available moving spots by coordinates
+    "a8" to fs, "b8" to fs, "c8" to fs, "d8" to fs, "e8" to fs, "f8" to fs, "g8" to fs, "h8" to fs,
+    "a7" to fs, "b7" to fs, "c7" to fs, "d7" to fs, "e7" to fs, "f7" to fs, "g7" to fs, "h7" to fs,
+    "a6" to fs, "b6" to fs, "c6" to fs, "d6" to fs, "e6" to fs, "f6" to fs, "g6" to fs, "h6" to fs,
+    "a5" to fs, "b5" to fs, "c5" to fs, "d5" to fs, "e5" to fs, "f5" to fs, "g5" to fs, "h5" to fs,
+    "a4" to fs, "b4" to fs, "c4" to fs, "d4" to fs, "e4" to fs, "f4" to fs, "g4" to fs, "h4" to fs,
+    "a3" to fs, "b3" to fs, "c3" to fs, "d3" to fs, "e3" to fs, "f3" to fs, "g3" to fs, "h3" to fs,
+    "a2" to fs, "b2" to fs, "c2" to fs, "d2" to fs, "e2" to fs, "f2" to fs, "g2" to fs, "h2" to fs,
+    "a1" to fs, "b1" to fs, "c1" to fs, "d1" to fs, "e1" to fs, "f1" to fs, "g1" to fs, "h1" to fs
+)
 // watch for weird false and add additions of the valid spots
 // map re-use, make a long string of charcters assigned to key (coord), index at comma
 
@@ -91,6 +103,8 @@ var contension = false;
 var checkHold = "a1";
 var masterAttack = false
 var reset = false
+var masterMate = false; var dodge = false
+var lose = false
 
 //------------------------------------- FUNCTIONS -----------------------------------------
 fun printBoard() {
@@ -107,6 +121,7 @@ fun printBoard() {
 // start up check. Every tile must be checked with opponents pieces, if your king is under attack, panic.
 // will start with seperate function for less confusion.
 fun start(player: Boolean) {
+    mimic = board.toMap()
     when (player) {
         true -> {
             user = "2"; opponent = "1"
@@ -122,6 +137,7 @@ fun start(player: Boolean) {
             user = "2"; opponent = "1"
         }
     }
+    contension = false
     printBoard()
     println("\n\nPlayer $user select the corresponding coordinate of the piece to move.")
     try {
@@ -161,6 +177,28 @@ fun check(round: Int) {
                 println("\nPlayer $opponent you are currently in check. The king must be safe to end your turn.")
                 masterAttack = true
                 // you are in check. Have to check if mated. Any legal moves? Being protecting the king?
+                valid = ogFalse.toMutableMap()
+                if (currentPlayer){
+                    user = "1"; opponent = "2"
+                }
+                else{
+                    user = "2"; opponent = "1"
+                }
+                masterMate = true
+                for (each in board) {
+                    if (each.value.contains(user)) {
+                        moving(
+                            xCoordAlpha(each.key.substring(startIndex = 0, endIndex = 1)),
+                            each.key.substring(startIndex = 1, endIndex = 2).toInt()
+                        )
+                    }
+                    // go into moving then tile check replace
+                }
+                if (!lose){
+                    println(" You Lose.")
+                    // end game.
+                }
+
             }
         }
         2 -> {
@@ -171,7 +209,48 @@ fun check(round: Int) {
             }
         }
     }
-    contension = false
+    //contension = false
+}
+
+fun mate(x: Int, y: Int){
+    if (currentPlayer){
+        user = "2"; opponent = "1"
+    }
+    else{
+        user = "1"; opponent = "2"
+    }
+    for (each in valid) { //account for en passent replace?
+        if (each.value) {
+            board[each.key] = board[xCoordNum(x) + y].toString()
+            board[xCoordNum(x) + y] = replace(x, y)
+            validTemp = valid.toMap()
+            valid = ogFalse.toMutableMap()
+            dodge = true
+            check(3)
+            dodge = false
+            if(valid[checkHold] == false){
+                board = mimic.toMutableMap()
+                print("Able to be saved.")
+                // fully break
+                lose = true
+
+            }
+            else{
+                board = mimic.toMutableMap()
+            }
+            valid = validTemp.toMutableMap()
+            print("yo")
+        }
+        // go into moving then tile check replace
+
+    }
+    if (currentPlayer){
+        user = "1"; opponent = "2"
+    }
+    else{
+        user = "2"; opponent = "1"
+    }
+    valid = ogFalse.toMutableMap()
 }
 
 //x coord translators -----------------------------------------------------
@@ -203,6 +282,9 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
+        if (masterMate && !dodge){
+            mate(x, y)
+        }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("R")) {
         rookMove = true
         UM1(x, y) // Universal Move 1
@@ -210,6 +292,9 @@ fun moving(x: Int, y: Int) {
         if (!contension) {
             possible()
             intermission(x, y)
+        }
+        if (masterMate && !dodge){
+            mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("K")) {
         knightMove = true
@@ -219,11 +304,17 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
+        if (masterMate && !dodge){
+            mate(x, y)
+        }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("B")) {
         UM1(x, y)
         if (!contension) {
             possible()
             intermission(x, y)
+        }
+        if (masterMate && !dodge){
+            mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("Q")) {
         UM1(x, y)
@@ -234,6 +325,9 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
+        if (masterMate && !dodge){
+            mate(x, y)
+        }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("M")) {
         masterMove = true
         UM2(x, y)
@@ -241,6 +335,9 @@ fun moving(x: Int, y: Int) {
         if (!contension) {
             possible()
             intermission(x, y)
+        }
+        if (masterMate && !dodge){
+            mate(x, y)
         }
     }
 }
@@ -270,7 +367,7 @@ fun possible() {
 fun endGame(x: Int, y: Int) {
     if (valid[xCoordNum(x) + y] == true) {
         valid = ogFalse.toMutableMap()
-        mimic = board.toMap()
+        //mimic = board.toMap()
         board[xCoordNum(x) + y] = board[xCoordNum(ogX) + ogY].toString()
         board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
         if (pawnMove) {
