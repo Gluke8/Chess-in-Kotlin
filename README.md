@@ -4,6 +4,9 @@
  Original by someone, origin dates back to India
  Kotlin (Code) Re-Creation by Luke Vandergeer (me)
 
+NOTICE:
+Code needs to be cleaned up, a lot of stuff could probably be made more efficient
+
 What's to come?
 - CheckMate, mostly done
 - Stalemate and other endgames
