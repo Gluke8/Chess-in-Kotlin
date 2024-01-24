@@ -5,7 +5,7 @@
  Kotlin (Code) Re-Creation by Luke Vandergeer (me)
 
 What's to come?
-- CheckMate
+- CheckMate, mostly done
 - Stalemate and other endgames
 - Castling
 - Bug fixes, or anything missed.

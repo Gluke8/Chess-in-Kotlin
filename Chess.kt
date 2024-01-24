@@ -17,19 +17,24 @@ class Bishop(x: Int, y: Int) {
 class Rook(x: Int, y: Int) {
     val list1 = listOf(1, 0, 0, 1, -1, 0, 0, -1, 8 - y, 8 - x, y, x)
 }
+
+class Castle() {
+    var castle1 = mutableListOf(true, true, true)
+    var castle2 = mutableListOf(true, true, true)
+}
 // construct an array to mimic line
 
 var board = mutableMapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
     // 'mutable' so every spot can be updated
-    "a8" to "R2", "b8" to "K2", "c8" to "B2", "d8" to "Q2", "e8" to "M2", "f8" to "B2", "g8" to "K2", "h8" to "R2",
-    "a7" to "P2", "b7" to "P2", "c7" to "P2", "d7" to "P2", "e7" to "Q2", "f7" to "P2", "g7" to "P2", "h7" to "P2",
+    "a8" to "R2", "b8" to "  ", "c8" to "  ", "d8" to "  ", "e8" to "M2", "f8" to "  ", "g8" to "  ", "h8" to "R2",
+    "a7" to "P2", "b7" to "P2", "c7" to "P2", "d7" to "P2", "e7" to "P2", "f7" to "  ", "g7" to "P2", "h7" to "P2",
     "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " ■", "f6" to " ■", "g6" to " □", "h6" to " ■",
     "a5" to " ■", "b5" to " □", "c5" to " ■", "d5" to " □", "e5" to " ■", "f5" to " □", "g5" to " ■", "h5" to " □",
     "a4" to " □", "b4" to " ■", "c4" to " □", "d4" to " ■", "e4" to " □", "f4" to " ■", "g4" to " □", "h4" to " ■",
     "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
-    "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to " □", "f2" to "P1", "g2" to "P1", "h2" to "P1",
-    "a1" to "R1", "b1" to "K1", "c1" to "B1", "d1" to "P1", "e1" to "M1", "f1" to "P1", "g1" to "P1", "h1" to "R1"
+    "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to "P1", "f2" to "Q1", "g2" to "P1", "h2" to "P1",
+    "a1" to "R1", "b1" to "  ", "c1" to "  ", "d1" to "  ", "e1" to "M1", "f1" to "  ", "g1" to "  ", "h1" to "R1"
 )
 var mimic = mapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
@@ -103,8 +108,11 @@ var contension = false;
 var checkHold = "a1";
 var masterAttack = false
 var reset = false
-var masterMate = false; var dodge = false
+var masterMate = false;
+var dodge = false
 var lose = false
+var castleObj = listOf(true)
+var setToCastle = false
 
 //------------------------------------- FUNCTIONS -----------------------------------------
 fun printBoard() {
@@ -118,6 +126,7 @@ fun printBoard() {
         }
     }
 }
+
 // start up check. Every tile must be checked with opponents pieces, if your king is under attack, panic.
 // will start with seperate function for less confusion.
 fun start(player: Boolean) {
@@ -128,6 +137,8 @@ fun start(player: Boolean) {
             check(1)
             valid = ogFalse.toMutableMap()
             user = "1"; opponent = "2"
+            selTemp = "1"
+            castleObj = Castle().castle1
         }
 
         false -> {
@@ -135,8 +146,21 @@ fun start(player: Boolean) {
             check(1)
             valid = ogFalse.toMutableMap()
             user = "2"; opponent = "1"
+            selTemp = "8"
+            castleObj = Castle().castle2
         }
     }
+    // castling check if moved, will never reset to true
+    if (board["a$selTemp"] != "R$user") {
+        (castleObj as MutableList<Boolean>)[0] = false
+    }
+    if (board["e$selTemp"] != "M$user") {
+        (castleObj as MutableList<Boolean>)[1] = false
+    }
+    if (board["h$selTemp"] != "R$user") {
+        (castleObj as MutableList<Boolean>)[2] = false
+    }
+
     contension = false
     printBoard()
     println("\n\nPlayer $user select the corresponding coordinate of the piece to move.")
@@ -171,6 +195,7 @@ fun check(round: Int) {
             checkHold = each.key
         }
     }
+    validTemp = valid.toMap()
     when (round) {
         1 -> {
             if (valid[checkHold] == true) {
@@ -178,10 +203,9 @@ fun check(round: Int) {
                 masterAttack = true
                 // you are in check. Have to check if mated. Any legal moves? Being protecting the king?
                 valid = ogFalse.toMutableMap()
-                if (currentPlayer){
+                if (currentPlayer) {
                     user = "1"; opponent = "2"
-                }
-                else{
+                } else {
                     user = "2"; opponent = "1"
                 }
                 masterMate = true
@@ -194,13 +218,14 @@ fun check(round: Int) {
                     }
                     // go into moving then tile check replace
                 }
-                if (!lose){
+                if (!lose) {
                     println(" You Lose.")
                     // end game.
                 }
 
             }
         }
+
         2 -> {
             if (valid[checkHold] == true) {
                 println("You are still under attack. Try selecting another piece")
@@ -212,11 +237,10 @@ fun check(round: Int) {
     //contension = false
 }
 
-fun mate(x: Int, y: Int){
-    if (currentPlayer){
+fun mate(x: Int, y: Int) {
+    if (currentPlayer) {
         user = "2"; opponent = "1"
-    }
-    else{
+    } else {
         user = "1"; opponent = "2"
     }
     for (each in valid) { //account for en passent replace?
@@ -228,14 +252,13 @@ fun mate(x: Int, y: Int){
             dodge = true
             check(3)
             dodge = false
-            if(valid[checkHold] == false){
+            if (valid[checkHold] == false) {
                 board = mimic.toMutableMap()
                 print("Able to be saved.")
                 // fully break
                 lose = true
 
-            }
-            else{
+            } else {
                 board = mimic.toMutableMap()
             }
             valid = validTemp.toMutableMap()
@@ -244,10 +267,9 @@ fun mate(x: Int, y: Int){
         // go into moving then tile check replace
 
     }
-    if (currentPlayer){
+    if (currentPlayer) {
         user = "1"; opponent = "2"
-    }
-    else{
+    } else {
         user = "2"; opponent = "1"
     }
     valid = ogFalse.toMutableMap()
@@ -282,18 +304,24 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
-        if (masterMate && !dodge){
+        if (masterMate && !dodge) {
             mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("R")) {
         rookMove = true
         UM1(x, y) // Universal Move 1
-        rookMove = false
+
         if (!contension) {
             possible()
+            if (masterMate == false) { // cant castle on check
+                newCastle(x, y)
+            }
+            //rookMove = false
             intermission(x, y)
+
         }
-        if (masterMate && !dodge){
+        rookMove = false
+        if (masterMate && !dodge) {
             mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("K")) {
@@ -304,7 +332,7 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
-        if (masterMate && !dodge){
+        if (masterMate && !dodge) {
             mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("B")) {
@@ -313,7 +341,7 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
-        if (masterMate && !dodge){
+        if (masterMate && !dodge) {
             mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("Q")) {
@@ -325,18 +353,21 @@ fun moving(x: Int, y: Int) {
             possible()
             intermission(x, y)
         }
-        if (masterMate && !dodge){
+        if (masterMate && !dodge) {
             mate(x, y)
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("M")) {
         masterMove = true
         UM2(x, y)
-        masterMove = false
         if (!contension) {
             possible()
+            if (!masterMate) { // cant castle on check
+                newCastle(x, y)
+            }
             intermission(x, y)
         }
-        if (masterMate && !dodge){
+        masterMove = false
+        if (masterMate && !dodge) {
             mate(x, y)
         }
     }
@@ -368,8 +399,39 @@ fun endGame(x: Int, y: Int) {
     if (valid[xCoordNum(x) + y] == true) {
         valid = ogFalse.toMutableMap()
         //mimic = board.toMap()
-        board[xCoordNum(x) + y] = board[xCoordNum(ogX) + ogY].toString()
-        board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
+        if (masterMove && abs(x - ogX) > 1) { // master move to castle, WORKS
+            if (x == 1) {
+                board[xCoordNum(3) + y] = board[xCoordNum(ogX) + ogY].toString()
+                board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
+                board[xCoordNum(4) + y] = board[xCoordNum(x) + ogY].toString()
+                board[xCoordNum(x) + ogY] = replace(x, ogY)
+            } else {
+                board[xCoordNum(7) + y] = board[xCoordNum(ogX) + ogY].toString()
+                board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
+                board[xCoordNum(6) + y] = board[xCoordNum(x) + ogY].toString()
+                board[xCoordNum(x) + ogY] = replace(x, ogY)
+            }
+        }
+        else if (rookMove && board[xCoordNum(x) + y].toString().contains("M$user")){
+            if (ogX == 1) {
+                board[xCoordNum(3) + y] = board[xCoordNum(ogX) + ogY].toString()
+                board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
+                board[xCoordNum(4) + y] = board[xCoordNum(x) + ogY].toString()
+                board[xCoordNum(x) + ogY] = replace(x, ogY)
+            } else {
+                board[xCoordNum(7) + y] = board[xCoordNum(ogX) + ogY].toString()
+                board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
+                board[xCoordNum(6) + y] = board[xCoordNum(x) + ogY].toString()
+                board[xCoordNum(x) + ogY] = replace(x, ogY)
+            }
+        }
+        else {
+            board[xCoordNum(x) + y] = board[xCoordNum(ogX) + ogY].toString()
+            board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
+        }
+
+
+
         if (pawnMove) {
             if (abs(y - ogY) == 2) {
                 prevMove = "$x$y$turnCount$user"
@@ -381,6 +443,7 @@ fun endGame(x: Int, y: Int) {
                 board[xCoordNum(x) + (y + (mod1 * -1))] = replace(x, y + (mod1 * -1)) // bugs may occur
             }
         }
+
         when (currentPlayer) {
             true -> {
                 user = "2"; opponent = "1"
@@ -388,6 +451,7 @@ fun endGame(x: Int, y: Int) {
                 valid = ogFalse.toMutableMap()
                 user = "1"; opponent = "2"
             }
+
             false -> {
                 user = "1"; opponent = "2"
                 check(2)
@@ -397,12 +461,12 @@ fun endGame(x: Int, y: Int) {
         }
         pawnMove = false; knightMove = false; masterMove = false; compPass = false; masterAttack = false
         mod1 = 0; mod2 = 0;
-        if (!reset){
+        masterMove = false; rookMove = false
+        if (!reset) {
             currentPlayer = !currentPlayer
             turnCount++
             start(currentPlayer)
-        }
-        else{
+        } else {
             reset = false
             start(currentPlayer)
         }
@@ -440,6 +504,53 @@ fun pawnPromo(x: Int, y: Int) {
         "R" -> board[xCoordNum(x) + y] = "R$user"
         else -> {
             println("Invalid promotion. Try again."); pawnPromo(x, y)
+        }
+    }
+}
+
+fun newCastle(x: Int, y: Int) {
+    if (masterMove && castleObj[1]) {
+        // look for rooks and checks between two rooks.
+
+        if (castleObj[0] &&
+            (board[xCoordNum(x - 1) + y].toString().contains(" ") &&
+                    board[xCoordNum(x - 2) + y].toString().contains(" ") &&
+                    board[xCoordNum(x - 3) + y].toString().contains(" ")) &&
+            (validTemp[xCoordNum(x - 1) + y] != true &&
+                    validTemp[xCoordNum(x - 2) + y] != true &&
+                    validTemp[xCoordNum(x - 3) + y] != true)
+        ) {
+            // check if blocked by piece or check
+            valid[xCoordNum(x - 4) + y] = true
+        } else {
+            println("no castle left")
+        }
+        if (castleObj[2] &&
+            (board[xCoordNum(x + 1) + y].toString().contains(" ") &&
+                    board[xCoordNum(x + 2) + y].toString().contains(" ")) &&
+            (validTemp[xCoordNum(x + 1) + y] != true && validTemp[xCoordNum(x + 2) + y] != true)
+        ) {
+            valid[xCoordNum(x + 3) + y] = true
+        } else {
+            println("no castle right")
+        }
+    } else if (rookMove && castleObj[1]) { //rook moving, check if king has moved
+        if (x == 1 && castleObj[0]) { // the if statements are for organization
+            if ((board[xCoordNum(x + 1) + y].toString().contains(" ") &&
+                        board[xCoordNum(x + 2) + y].toString().contains(" ") &&
+                        board[xCoordNum(x + 3) + y].toString().contains(" ")) &&
+                (validTemp[xCoordNum(x + 1) + y] != true &&
+                        validTemp[xCoordNum(x + 2) + y] != true &&
+                        validTemp[xCoordNum(x + 3) + y] != true)
+            ) {
+                valid[xCoordNum(x + 4) + y] = true
+            }
+        } else if (x == 8 && castleObj[2]) {
+            if ((board[xCoordNum(x - 1) + y].toString().contains(" ") &&
+                        board[xCoordNum(x - 2) + y].toString().contains(" ")) &&
+                (validTemp[xCoordNum(x - 1) + y] != true && validTemp[xCoordNum(x - 2) + y] != true)) {
+                valid[xCoordNum(x - 3) + y] = true
+            }
         }
     }
 }
