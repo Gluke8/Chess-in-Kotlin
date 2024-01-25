@@ -1,6 +1,8 @@
+import jdk.jshell.spi.ExecutionEnv
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.min
+import kotlin.system.exitProcess
 
 class Master {
     val list1 = listOf(1, 0, -1, 0, 0, 1, 0, -1, 1, 1, 1, -1, -1, -1, -1, 1)
@@ -27,14 +29,14 @@ class Castle() {
 var board = mutableMapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
     // 'mutable' so every spot can be updated
-    "a8" to "R2", "b8" to "  ", "c8" to "  ", "d8" to "  ", "e8" to "M2", "f8" to "  ", "g8" to "  ", "h8" to "R2",
-    "a7" to "P2", "b7" to "P2", "c7" to "P2", "d7" to "P2", "e7" to "P2", "f7" to "  ", "g7" to "P2", "h7" to "P2",
+    "a8" to "M2", "b8" to "  ", "c8" to "  ", "d8" to "  ", "e8" to "M2", "f8" to "  ", "g8" to "  ", "h8" to "R2",
+    "a7" to "  ", "b7" to "  ", "c7" to "  ", "d7" to "P2", "e7" to "P2", "f7" to "  ", "g7" to "P2", "h7" to "P2",
     "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " ■", "f6" to " ■", "g6" to " □", "h6" to " ■",
     "a5" to " ■", "b5" to " □", "c5" to " ■", "d5" to " □", "e5" to " ■", "f5" to " □", "g5" to " ■", "h5" to " □",
     "a4" to " □", "b4" to " ■", "c4" to " □", "d4" to " ■", "e4" to " □", "f4" to " ■", "g4" to " □", "h4" to " ■",
-    "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
-    "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to "P1", "f2" to "Q1", "g2" to "P1", "h2" to "P1",
-    "a1" to "R1", "b1" to "  ", "c1" to "  ", "d1" to "  ", "e1" to "M1", "f1" to "  ", "g1" to "  ", "h1" to "R1"
+    "a3" to " ■", "b3" to "Q2", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
+    "a2" to "  ", "b2" to "P1", "c2" to "  ", "d2" to "  ", "e2" to "  ", "f2" to "Q2", "g2" to "  ", "h2" to "  ",
+    "a1" to "  ", "b1" to "  ", "c1" to "  ", "d1" to "  ", "e1" to "  ", "f1" to "  ", "g1" to "  ", "h1" to "M1"
 )
 var mimic = mapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
@@ -113,6 +115,7 @@ var dodge = false
 var lose = false
 var castleObj = listOf(true)
 var setToCastle = false
+var mapIt = 0
 
 //------------------------------------- FUNCTIONS -----------------------------------------
 fun printBoard() {
@@ -219,10 +222,33 @@ fun check(round: Int) {
                     // go into moving then tile check replace
                 }
                 if (!lose) {
-                    println(" You Lose.")
+                    println("You Lose.")
                     // end game.
                 }
 
+            }
+            else {
+            // stalemate, go through all your pieces, if no possible, draw
+                valid = ogFalse.toMutableMap()
+                if (currentPlayer) {
+                    user = "1"; opponent = "2"
+                } else {
+                    user = "2"; opponent = "1"
+                }
+                for (each in board) {
+                    if (each.value.contains(user)) {
+                        moving(
+                            xCoordAlpha(each.key.substring(startIndex = 0, endIndex = 1)),
+                            each.key.substring(startIndex = 1, endIndex = 2).toInt()
+                        )
+                    }
+                }
+                // rid of null
+                // set to only 64
+
+
+                possible()
+                //calculate possible check spots in king move
             }
         }
 
@@ -234,7 +260,6 @@ fun check(round: Int) {
             }
         }
     }
-    //contension = false
 }
 
 fun mate(x: Int, y: Int) {
@@ -262,7 +287,6 @@ fun mate(x: Int, y: Int) {
                 board = mimic.toMutableMap()
             }
             valid = validTemp.toMutableMap()
-            print("yo")
         }
         // go into moving then tile check replace
 
@@ -389,10 +413,27 @@ fun intermission(x: Int, y: Int) {
 }
 
 fun possible() {
-    if (!valid.containsValue(true)) {
-        println("Selected piece cannot move. Select another one.")
-        start(currentPlayer)
+    //iterate only 64 times
+    valid.forEach{
+        if(it.key.contains("null") || it.key.contains("0") ){
+            valid.minus(it)
+        }
+        else if (!it.value){
+            mapIt++
+        }
     }
+    if (mapIt == 64){
+        println("No available spots to move. Try selecting another piece")
+        mapIt = 0
+        if(!contension){
+            start(currentPlayer)
+        }
+        else{
+            println("Game over!")
+            exitProcess(0)
+        }
+    }
+    mapIt = 0
 }
 
 fun endGame(x: Int, y: Int) {
@@ -574,10 +615,6 @@ fun pawn(x: Int, y: Int) {
             }
         }
     }
-    // FIXED: three bugs.
-    // - Or -> and operators
-    // - true tile through a piece at two tile
-    // - player left player capture, only went right
     if (!board[pawnTemp + (y + mod1)].toString().contains("2") && !board[pawnTemp + (y + mod1)].toString()
             .contains("1")
     ) {
@@ -650,57 +687,70 @@ fun UM2(x: Int, y: Int) {
     } else { // master (king)
         lL = Master().list1
     }
-    when (recursion) { //no need for error catch. maps just resort to a null
-        // might have to recreate a map of spots so nulls don't stack, maybe not if the nulls don't do anything
-        1 -> {
-            valid[xCoordNum(x + lL[0]) + (y + lL[1])] = true
-            checkSpot(x + lL[0], y + lL[1])
-        }
+    try {
+        when (recursion) { //no need for error catch. maps just resort to a null
+            // might have to recreate a map of spots so nulls don't stack, maybe not if the nulls don't do anything
+            1 -> {
+                valid[xCoordNum(x + lL[0]) + (y + lL[1])] = true
+                checkSpot(x + lL[0], y + lL[1])
+            }
 
-        2 -> {
-            valid[xCoordNum(x + lL[2]) + (y + lL[3])] = true
-            checkSpot(x + lL[2], y + lL[3])
-        }
+            2 -> {
+                valid[xCoordNum(x + lL[2]) + (y + lL[3])] = true
+                checkSpot(x + lL[2], y + lL[3])
+            }
 
-        3 -> {
-            valid[xCoordNum(x + lL[4]) + (y + lL[5])] = true
-            checkSpot(x + lL[4], y + lL[5])
-        }
+            3 -> {
+                valid[xCoordNum(x + lL[4]) + (y + lL[5])] = true
+                checkSpot(x + lL[4], y + lL[5])
+            }
 
-        4 -> {
-            valid[xCoordNum(x + lL[6]) + (y + lL[7])] = true
-            checkSpot(x + lL[6], y + lL[7])
-        }
+            4 -> {
+                valid[xCoordNum(x + lL[6]) + (y + lL[7])] = true
+                checkSpot(x + lL[6], y + lL[7])
+            }
 
-        5 -> {
-            valid[xCoordNum(x + lL[8]) + (y + lL[9])] = true
-            checkSpot(x + lL[8], y + lL[9])
-        }
+            5 -> {
+                valid[xCoordNum(x + lL[8]) + (y + lL[9])] = true
+                checkSpot(x + lL[8], y + lL[9])
+            }
 
-        6 -> {
-            valid[xCoordNum(x + lL[10]) + (y + lL[11])] = true
-            checkSpot(x + lL[10], y + lL[11])
-        }
+            6 -> {
+                valid[xCoordNum(x + lL[10]) + (y + lL[11])] = true
+                checkSpot(x + lL[10], y + lL[11])
+            }
 
-        7 -> {
-            valid[xCoordNum(x + lL[12]) + (y + lL[13])] = true
-            checkSpot(x + lL[12], y + lL[13])
-        }
+            7 -> {
+                valid[xCoordNum(x + lL[12]) + (y + lL[13])] = true
+                checkSpot(x + lL[12], y + lL[13])
+            }
 
-        8 -> {
-            valid[xCoordNum(x + lL[14]) + (y + lL[15])] = true
-            checkSpot(x + lL[14], y + lL[15])
+            8 -> {
+                valid[xCoordNum(x + lL[14]) + (y + lL[15])] = true
+                checkSpot(x + lL[14], y + lL[15])
+            }
+        }
+    }
+    catch (e: IndexOutOfBoundsException){
+        if (recursion != 8) {
+            recursion++
+            UM2(x, y)
         }
     }
     if (recursion != 8) {
         recursion++
         UM2(x, y)
     }
+
     recursion = 1
 }// knight looping for some reason, does not cause harm though...
 
 fun checkSpot(x: Int, y: Int) {
     if (board[xCoordNum(x) + y].toString().contains(user)) {
+        valid[xCoordNum(x) + y] = false
+    }
+    if (!knightMove && validTemp[xCoordNum(x) + y] == true){
+        //king cannot move to checked spot
         valid[xCoordNum(x) + y] = false
     }
 }

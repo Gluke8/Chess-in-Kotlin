@@ -8,9 +8,7 @@ NOTICE:
 Code needs to be cleaned up, a lot of stuff could probably be made more efficient
 
 What's to come?
-- CheckMate, mostly done
-- Stalemate and other endgames
-- Castling
+- Other end games?
 - Bug fixes, or anything missed.
 - Enhancements, from you for example
 - Android Studio development
