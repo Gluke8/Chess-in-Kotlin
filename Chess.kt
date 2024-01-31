@@ -1,4 +1,3 @@
-import jdk.jshell.spi.ExecutionEnv
 import java.util.*
 import kotlin.math.abs
 import kotlin.math.min
@@ -29,14 +28,14 @@ class Castle() {
 var board = mutableMapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
     // 'mutable' so every spot can be updated
-    "a8" to "M2", "b8" to "  ", "c8" to "  ", "d8" to "  ", "e8" to "M2", "f8" to "  ", "g8" to "  ", "h8" to "R2",
-    "a7" to "  ", "b7" to "  ", "c7" to "  ", "d7" to "P2", "e7" to "P2", "f7" to "  ", "g7" to "P2", "h7" to "P2",
+    "a8" to "R2", "b8" to "K2", "c8" to "B2", "d8" to "Q2", "e8" to "M2", "f8" to "B2", "g8" to "K2", "h8" to "R2",
+    "a7" to "P2", "b7" to "P2", "c7" to "P2", "d7" to "P2", "e7" to "P2", "f7" to "P2", "g7" to "P2", "h7" to "P2",
     "a6" to " □", "b6" to " ■", "c6" to " □", "d6" to " ■", "e6" to " ■", "f6" to " ■", "g6" to " □", "h6" to " ■",
     "a5" to " ■", "b5" to " □", "c5" to " ■", "d5" to " □", "e5" to " ■", "f5" to " □", "g5" to " ■", "h5" to " □",
     "a4" to " □", "b4" to " ■", "c4" to " □", "d4" to " ■", "e4" to " □", "f4" to " ■", "g4" to " □", "h4" to " ■",
-    "a3" to " ■", "b3" to "Q2", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
-    "a2" to "  ", "b2" to "P1", "c2" to "  ", "d2" to "  ", "e2" to "  ", "f2" to "Q2", "g2" to "  ", "h2" to "  ",
-    "a1" to "  ", "b1" to "  ", "c1" to "  ", "d1" to "  ", "e1" to "  ", "f1" to "  ", "g1" to "  ", "h1" to "M1"
+    "a3" to " ■", "b3" to " □", "c3" to " ■", "d3" to " □", "e3" to " ■", "f3" to " □", "g3" to " ■", "h3" to " □",
+    "a2" to "P1", "b2" to "P1", "c2" to "P1", "d2" to "P1", "e2" to "P1", "f2" to "P1", "g2" to "P1", "h2" to "P1",
+    "a1" to "R1", "b1" to "K1", "c1" to "B1", "d1" to "Q1", "e1" to "M1", "f1" to "B1", "g1" to "K1", "h1" to "R1"
 )
 var mimic = mapOf(
     // starting chess board as a dictionary, makes for easy coordinates of pieces
@@ -114,7 +113,6 @@ var masterMate = false;
 var dodge = false
 var lose = false
 var castleObj = listOf(true)
-var setToCastle = false
 var mapIt = 0
 
 //------------------------------------- FUNCTIONS -----------------------------------------
@@ -129,9 +127,6 @@ fun printBoard() {
         }
     }
 }
-
-// start up check. Every tile must be checked with opponents pieces, if your king is under attack, panic.
-// will start with seperate function for less confusion.
 fun start(player: Boolean) {
     mimic = board.toMap()
     when (player) {
@@ -153,7 +148,6 @@ fun start(player: Boolean) {
             castleObj = Castle().castle2
         }
     }
-    // castling check if moved, will never reset to true
     if (board["a$selTemp"] != "R$user") {
         (castleObj as MutableList<Boolean>)[0] = false
     }
@@ -174,8 +168,6 @@ fun start(player: Boolean) {
                 xCoordAlpha(selTemp.substring(startIndex = 0, endIndex = 1)),
                 selTemp.substring(startIndex = 1, endIndex = 2).toInt()
             )
-            // x,y coordinate
-            // a ->  translate, for ex. 1 ,y -> 2
         } else {
             start(currentPlayer)
         }
@@ -243,12 +235,7 @@ fun check(round: Int) {
                         )
                     }
                 }
-                // rid of null
-                // set to only 64
-
-
                 possible()
-                //calculate possible check spots in king move
             }
         }
 
@@ -288,8 +275,6 @@ fun mate(x: Int, y: Int) {
             }
             valid = validTemp.toMutableMap()
         }
-        // go into moving then tile check replace
-
     }
     if (currentPlayer) {
         user = "1"; opponent = "2"
@@ -333,16 +318,13 @@ fun moving(x: Int, y: Int) {
         }
     } else if (board[xCoordNum(x) + y.toString()].toString().contains("R")) {
         rookMove = true
-        UM1(x, y) // Universal Move 1
-
+        UM1(x, y)
         if (!contension) {
             possible()
-            if (masterMate == false) { // cant castle on check
+            if (!masterMate) {
                 newCastle(x, y)
             }
-            //rookMove = false
             intermission(x, y)
-
         }
         rookMove = false
         if (masterMate && !dodge) {
@@ -470,9 +452,6 @@ fun endGame(x: Int, y: Int) {
             board[xCoordNum(x) + y] = board[xCoordNum(ogX) + ogY].toString()
             board[xCoordNum(ogX) + ogY] = replace(ogX, ogY)
         }
-
-
-
         if (pawnMove) {
             if (abs(y - ogY) == 2) {
                 prevMove = "$x$y$turnCount$user"
@@ -484,7 +463,6 @@ fun endGame(x: Int, y: Int) {
                 board[xCoordNum(x) + (y + (mod1 * -1))] = replace(x, y + (mod1 * -1)) // bugs may occur
             }
         }
-
         when (currentPlayer) {
             true -> {
                 user = "2"; opponent = "1"
@@ -682,12 +660,12 @@ fun universalMove(x: Int, y: Int, mY: Int, mX: Int, remaining: Int) {
 
 fun UM2(x: Int, y: Int) {
     var lL = listOf(1)
-    if (knightMove) { // knight
-        lL = Knight().list1
+    lL = if (knightMove) { // knight
+        Knight().list1
     } else { // master (king)
-        lL = Master().list1
+        Master().list1
     }
-    try {
+
         when (recursion) { //no need for error catch. maps just resort to a null
             // might have to recreate a map of spots so nulls don't stack, maybe not if the nulls don't do anything
             1 -> {
@@ -730,20 +708,13 @@ fun UM2(x: Int, y: Int) {
                 checkSpot(x + lL[14], y + lL[15])
             }
         }
-    }
-    catch (e: IndexOutOfBoundsException){
-        if (recursion != 8) {
-            recursion++
-            UM2(x, y)
-        }
-    }
+
     if (recursion != 8) {
         recursion++
         UM2(x, y)
     }
-
     recursion = 1
-}// knight looping for some reason, does not cause harm though...
+}
 
 fun checkSpot(x: Int, y: Int) {
     if (board[xCoordNum(x) + y].toString().contains(user)) {
@@ -756,6 +727,7 @@ fun checkSpot(x: Int, y: Int) {
 }
 
 //----------------------------------------------------------------------------------
+
 fun main() {
     start(currentPlayer)
 }
